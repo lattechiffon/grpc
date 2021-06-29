@@ -1,9 +1,12 @@
 package com.lattechiffon.grpc;
 
 import io.grpc.*;
+import io.grpc.stub.StreamObserver;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class GrpcApplication {
 
@@ -47,6 +50,43 @@ public class GrpcApplication {
         // Client: Client-side Streaming RPC
         System.out.println("(2) Client-side Streaming RPC");
 
+        final CountDownLatch finishLatch = new CountDownLatch(1);
+        StreamObserver<UserIdx> responseObserver = new io.grpc.stub.StreamObserver<UserIdx>() {
+
+            @Override
+            public void onNext(UserIdx userIdx) {
+                for (long idx : userIdx.getIdxList()) {
+                    System.out.println("Client: " + idx);
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                finishLatch.countDown();
+            }
+
+            @Override
+            public void onCompleted() {
+                finishLatch.countDown();
+            }
+        };
+
+        StreamObserver<User> requestObserver = asyncStub.setUsers(responseObserver);
+
+        try {
+            for (int i = 0; i < 5; i++) {
+                requestObserver.onNext(User.newBuilder().setUsername("NEW USER - " + i)
+                        .setEmail("test@test.com").addRoles("USER").build());
+                Thread.sleep(500);
+            }
+        } catch (StatusRuntimeException|InterruptedException ignored) { }
+
+        requestObserver.onCompleted();
+
+        try {
+            finishLatch.await(1, TimeUnit.MINUTES);
+        } catch (InterruptedException ignored) { }
+
         // Client: Server-side Streaming RPC
         System.out.println("(3) Server-side Streaming RPC");
 
@@ -60,6 +100,42 @@ public class GrpcApplication {
 
         // Client: Bidirectional Streaming RPC
         System.out.println("(4) Bidirectional Streaming RPC");
+
+        final CountDownLatch finishLatch2 = new CountDownLatch(1);
+        StreamObserver<User> responseObserver2 = new io.grpc.stub.StreamObserver<User>() {
+
+            @Override
+            public void onNext(User user) {
+                System.out.println(user.toString());
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                finishLatch2.countDown();
+            }
+
+            @Override
+            public void onCompleted() {
+                finishLatch2.countDown();
+            }
+        };
+
+        StreamObserver<UserIdx> requestObserver2 = asyncStub.getUsersRealtime(responseObserver2);
+
+        try {
+            for (int i = 1; i <= 5; i++) {
+                requestObserver2.onNext(UserIdx.newBuilder().addIdx(i).build());
+                Thread.sleep(1000);
+            }
+
+            requestObserver2.onNext(UserIdx.newBuilder().addIdx(6).addIdx(7).build());
+        } catch (StatusRuntimeException|InterruptedException ignored) { }
+
+        requestObserver2.onCompleted();
+
+        try {
+            finishLatch2.await(1, TimeUnit.MINUTES);
+        } catch (InterruptedException ignored) { }
 
         // Release
         channel.shutdown();

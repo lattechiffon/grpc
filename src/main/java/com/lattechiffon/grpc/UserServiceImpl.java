@@ -42,6 +42,7 @@ public class UserServiceImpl extends UserServiceGrpc.UserServiceImplBase {
 
             @Override
             public void onNext(User user) {
+                user = user.toBuilder().setIdx(idxCounter++).build();
                 userMap.put(user.getIdx(), user);
                 responseBuilder.addIdx(user.getIdx());
             }
