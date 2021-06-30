@@ -51,7 +51,7 @@ public class GrpcApplication {
         System.out.println("(2) Client-side Streaming RPC");
 
         final CountDownLatch finishLatch = new CountDownLatch(1);
-        StreamObserver<UserIdx> responseObserver = new io.grpc.stub.StreamObserver<UserIdx>() {
+        StreamObserver<UserIdx> responseObserver = new StreamObserver<UserIdx>() {
 
             @Override
             public void onNext(UserIdx userIdx) {
@@ -102,7 +102,7 @@ public class GrpcApplication {
         System.out.println("(4) Bidirectional Streaming RPC");
 
         final CountDownLatch finishLatch2 = new CountDownLatch(1);
-        StreamObserver<User> responseObserver2 = new io.grpc.stub.StreamObserver<User>() {
+        StreamObserver<User> responseObserver2 = new StreamObserver<User>() {
 
             @Override
             public void onNext(User user) {
