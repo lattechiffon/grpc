@@ -13,7 +13,8 @@ public class GrpcApplication {
     public static void main(String[] args) {
         // Initialize gRPC Server
         int port = 8080;
-        Server server = ServerBuilder.forPort(port).addService(new UserServiceImpl()).build();
+        Server server = ServerBuilder.forPort(port)
+                .addService(ServerInterceptors.intercept(new UserServiceImpl(), new UserServerInterceptor())).build();
 
         try {
             server.start();
@@ -29,7 +30,8 @@ public class GrpcApplication {
         }));
 
         // Initialize gRPC Client
-        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext().build();
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext()
+                .intercept(new UserClientInterceptor()).build();
         UserServiceGrpc.UserServiceBlockingStub stub = UserServiceGrpc.newBlockingStub(channel);
         UserServiceGrpc.UserServiceStub asyncStub = UserServiceGrpc.newStub(channel);
         UserServiceGrpc.UserServiceFutureStub futureStub = UserServiceGrpc.newFutureStub(channel);
@@ -38,14 +40,14 @@ public class GrpcApplication {
         System.out.println("(1) Unary RPC");
         UserIdx setUserResult = stub.setUser(User.newBuilder().setUsername("GO YONGGUK")
                 .setEmail("lattechiffon@gmail.com").addRoles("USER").addRoles("ADMIN").build());
-        System.out.println("Client: " + setUserResult.getIdx(0));
+        // System.out.println("Client: " + setUserResult.getIdx(0));
 
         setUserResult = stub.setUser(User.newBuilder().setUsername("KIM MINSU")
                 .setEmail("minsu@test.com").addRoles("USER").build());
-        System.out.println("Client: " + setUserResult.getIdx(0));
+        // System.out.println("Client: " + setUserResult.getIdx(0));
 
         User getUserResult = stub.getUser(setUserResult);
-        System.out.println(getUserResult.toString());
+        // System.out.println(getUserResult.toString());
 
         // Client: Client-side Streaming RPC
         System.out.println("(2) Client-side Streaming RPC");
@@ -56,7 +58,7 @@ public class GrpcApplication {
             @Override
             public void onNext(UserIdx userIdx) {
                 for (long idx : userIdx.getIdxList()) {
-                    System.out.println("Client: " + idx);
+                    // System.out.println("Client: " + idx);
                 }
             }
 
@@ -94,7 +96,8 @@ public class GrpcApplication {
             Iterator<User> getUsersResult = stub.getUsers(UserIdx.newBuilder().addIdx(1).addIdx(2).build());
 
             while (getUsersResult.hasNext()) {
-                System.out.println(getUsersResult.next().toString());
+                getUsersResult.next();
+                //System.out.println(getUsersResult.next().toString());
             }
         } catch (StatusRuntimeException ignored) { }
 
@@ -106,7 +109,7 @@ public class GrpcApplication {
 
             @Override
             public void onNext(User user) {
-                System.out.println(user.toString());
+                // System.out.println(user.toString());
             }
 
             @Override
