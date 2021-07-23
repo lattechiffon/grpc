@@ -8,9 +8,10 @@ option java_outer_classname = "UserServiceOuterClass";
 service UserService {
   rpc setUser(User) returns (UserIdx);
   rpc getUser(UserIdx) returns (User);
+  rpc getUserSlowly(UserIdx) returns (User);
   rpc setUsers(stream User) returns (UserIdx);
   rpc getUsers(UserIdx) returns (stream User);
-  rpc getUsersRealtime(stream UserIdx) returns(stream User);
+  rpc getUsersRealtime(stream UserIdx) returns (stream User);
 }
 
 message User {

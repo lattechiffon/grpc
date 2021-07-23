@@ -32,8 +32,8 @@ public class GrpcApplication {
         // Initialize gRPC Client
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", 8080).usePlaintext()
                 .intercept(new UserClientInterceptor()).build();
-        UserServiceGrpc.UserServiceBlockingStub stub = UserServiceGrpc.newBlockingStub(channel);
-        UserServiceGrpc.UserServiceStub asyncStub = UserServiceGrpc.newStub(channel);
+        UserServiceGrpc.UserServiceBlockingStub stub = UserServiceGrpc.newBlockingStub(channel).withDeadlineAfter(500, TimeUnit.MILLISECONDS);
+        UserServiceGrpc.UserServiceStub asyncStub = UserServiceGrpc.newStub(channel).withDeadlineAfter(3000, TimeUnit.MILLISECONDS);
         UserServiceGrpc.UserServiceFutureStub futureStub = UserServiceGrpc.newFutureStub(channel);
 
         // Client: Unary RPC, 3 times
@@ -81,7 +81,7 @@ public class GrpcApplication {
                         .setEmail("test@test.com").addRoles("USER").build());
                 Thread.sleep(500);
             }
-        } catch (StatusRuntimeException|InterruptedException ignored) { }
+        } catch (StatusRuntimeException|InterruptedException e) { System.out.println("Deadline Exceeded. : " + e.getMessage()); }
 
         requestObserver.onCompleted();
 
@@ -99,7 +99,7 @@ public class GrpcApplication {
                 getUsersResult.next();
                 //System.out.println(getUsersResult.next().toString());
             }
-        } catch (StatusRuntimeException ignored) { }
+        } catch (StatusRuntimeException e) { System.out.println("Deadline Exceeded. : " + e.getMessage()); }
 
         // Client: Bidirectional Streaming RPC
         System.out.println("(4) Bidirectional Streaming RPC");
@@ -132,13 +132,22 @@ public class GrpcApplication {
             }
 
             requestObserver2.onNext(UserIdx.newBuilder().addIdx(6).addIdx(7).build());
-        } catch (StatusRuntimeException|InterruptedException ignored) { }
+        } catch (StatusRuntimeException|InterruptedException e) { System.out.println("Deadline Exceeded. : " + e.getMessage()); }
 
         requestObserver2.onCompleted();
 
         try {
             finishLatch2.await(1, TimeUnit.MINUTES);
         } catch (InterruptedException ignored) { }
+
+        // Deadline
+        try {
+            User testForDeadline = stub.getUserSlowly(UserIdx.newBuilder().addIdx(0).build());
+        } catch (StatusRuntimeException e) {
+            if (e.getStatus().getCode() == Status.Code.DEADLINE_EXCEEDED) {
+                System.out.println("Deadline Exceeded. : " + e.getMessage());
+            }
+        }
 
         // Release
         channel.shutdown();

@@ -36,6 +36,21 @@ public class UserServiceImpl extends UserServiceGrpc.UserServiceImplBase {
     }
 
     @Override
+    public void getUserSlowly(UserIdx request, StreamObserver<User> responseObserver) {
+        long userIdx = request.getIdx(0);
+
+        if (userMap.containsKey(userIdx)) {
+            try {
+                Thread.sleep(1000);
+            } catch(InterruptedException ignored) { };
+            responseObserver.onNext(userMap.get(userIdx));
+            responseObserver.onCompleted();
+        } else {
+            responseObserver.onError(new StatusException(Status.NOT_FOUND));
+        }
+    }
+
+    @Override
     public StreamObserver<User> setUsers(final StreamObserver<UserIdx> responseObserver) {
         return new StreamObserver<User>() {
 
